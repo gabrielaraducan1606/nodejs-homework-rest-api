@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 const Contact = require("./contact");
 
@@ -47,4 +48,5 @@ module.exports = {
   removeContact,
   updateContact,
   updateStatusContact,
+
 };
