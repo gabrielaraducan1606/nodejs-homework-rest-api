@@ -1,6 +1,7 @@
 const path = require("path");
 const  Jimp  = require("jimp"); 
-
+const User = require("../schemas/userSchema");
+const { sendVerificationEmail } = require("../service/emailService");
 const {
     getAllUsers,
     getAllContacts,
@@ -31,23 +32,27 @@ const getContactsController = async (req, res) => {
     }
 };
 
+
 const createUserController = async (req, res) => {
     try {
-        const { email, password, name } = req.body;
-        if (!email || !password || !name) {
-            return res.status(400).json({ message: "Missing required fields" });
-        }
-
-        const newUser = await createUser({ email, password, name });
-
-        return res.status(201).json({
-            message: "User created successfully",
-            user: { email: newUser.email, subscription: newUser.subscription },
-        });
+      const { email, password, name } = req.body;
+      if (!email || !password || !name) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+  
+      const newUser = await createUser({ email, password, name });
+  
+      // Trimite e-mail-ul de verificare
+      await sendVerificationEmail(newUser.email, newUser.verificationToken);
+  
+      return res.status(201).json({
+        message: "User created successfully. Please check your email to verify your account.",
+        user: { email: newUser.email, subscription: newUser.subscription },
+      });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
-};
+  };
 
 const loginUserController = async (req, res) => {
     try {
@@ -142,7 +147,40 @@ const updateAvatarController = async (req, res, next) => {
     }
 };
 
-module.exports = {
+const verifyEmailController = async (req, res) => {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({ verificationToken });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    user.verificationToken = null;
+    user.verify = true;
+    await user.save();
+    return res.status(200).json({ message: "Verification successful" });
+  };
+  
+  const resendVerificationEmailController = async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "missing required field email" });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (user.verify) {
+      return res.status(400).json({ message: "Verification has already been passed" });
+    }
+  
+    // Opțional: poți regenera token-ul dacă dorești:
+    // user.verificationToken = nanoid();
+    // await user.save();
+  
+    await sendVerificationEmail(email, user.verificationToken);
+    return res.status(200).json({ message: "Verification email sent" });
+  };
+  
+  module.exports = {
     getUsersController,
     getContactsController,
     createUserController,
@@ -150,5 +188,7 @@ module.exports = {
     logoutUserController,
     addContactController,
     getCurrentUserController,
-    updateAvatarController
-};
+    updateAvatarController,
+    verifyEmailController,
+    resendVerificationEmailController,
+  };
