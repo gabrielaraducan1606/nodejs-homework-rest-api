@@ -2,6 +2,8 @@ const User = require("../schemas/userSchema");
 const Contact = require("../schemas/contact");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const gravatar = require('gravatar');
+
 require("dotenv").config();
 
 const getAllUsers = async () => {
@@ -23,11 +25,14 @@ const createUser = async ({ email, password, name }) => {
         throw new Error("Email already in use");
     }
 
-    const user = new User({ email, password, name });
+    const avatarURL = gravatar.url(email, { s: "250", d: "retro" }, true);
+
+    const user = new User({ email, password, name, avatarURL }); 
     await user.save();
 
     return user;
 };
+
 
 const loginUser = async ({ email, password }) => {
     const user = await User.findOne({ email });
