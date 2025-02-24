@@ -32,8 +32,11 @@ const userSchema = new mongoose.Schema({
   },
   verificationToken: {
     type: String,
-    required: [true, "Verify token is required"],
+    required: function () {
+      return !this.verify;
+    },
   },
+  
 });
 
 userSchema.pre("save", async function (next) {
