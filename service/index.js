@@ -3,6 +3,7 @@ const Contact = require("../schemas/contact");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const gravatar = require('gravatar');
+const { nanoid } = require("nanoid");
 
 require("dotenv").config();
 
@@ -18,20 +19,21 @@ const getUserByEmail = async (email) => {
     return await User.findOne({ email });
 };
 
-const createUser = async ({ email, password, name }) => {
 
+const createUser = async ({ email, password, name }) => {
     const userExists = await User.findOne({ email });
     if (userExists) {
-        throw new Error("Email already in use");
+      throw new Error("Email already in use");
     }
-
+  
     const avatarURL = gravatar.url(email, { s: "250", d: "retro" }, true);
-
-    const user = new User({ email, password, name, avatarURL }); 
+    const verificationToken = nanoid(); 
+  
+    const user = new User({ email, password, name, avatarURL, verificationToken });
     await user.save();
-
+  
     return user;
-};
+  };
 
 
 const loginUser = async ({ email, password }) => {
@@ -86,4 +88,4 @@ module.exports = {
     logoutUser,
     addContact,
     getCurrentUser
-};
+  };
